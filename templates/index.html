@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MarkItDown - Local File Converter</title>
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <!-- Local CSS -->
+    <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+    <header>
+        <div class="brand">
+            <!-- Document Icon -->
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color: var(--accent);">
+                <path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"></path>
+                <polyline points="14 2 14 8 20 8"></polyline>
+            </svg>
+            <h1>MarkItDown</h1>
+            <span>Local UI</span>
+        </div>
+        <div style="font-size: 0.8rem; color: var(--text-secondary);">
+            Offline-Capable &amp; Private
+        </div>
+    </header>
+
+    <main>
+        <!-- Left Panel: Upload controls -->
+        <section class="panel-left">
+            <div class="card">
+                <h2 style="font-size: 1.1rem; font-weight: 600; margin-bottom: 1rem; color: white;">Convert Document</h2>
+                
+                <!-- Dropzone -->
+                <div id="dropzone" class="dropzone">
+                    <svg class="dropzone-icon" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                        <polyline points="17 8 12 3 7 8"></polyline>
+                        <line x1="12" y1="3" x2="12" y2="15"></line>
+                    </svg>
+                    <div class="dropzone-text">
+                        <h3>Drag &amp; Drop file here</h3>
+                        <p>or click to browse local files</p>
+                    </div>
+                    <input type="file" id="fileInput" class="file-input">
+                </div>
+
+                <!-- Selected File Display -->
+                <div id="fileInfo" class="file-info">
+                    <div class="file-info-header">
+                        <div>
+                            <div id="fileName" class="file-info-name">document.docx</div>
+                            <div id="fileSize" class="file-info-size">0 KB</div>
+                        </div>
+                        <button id="btnRemoveFile" class="btn-remove" title="Remove file">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <line x1="18" y1="6" x2="6" y2="18"></line>
+                                <line x1="6" y1="6" x2="18" y2="18"></line>
+                            </svg>
+                        </button>
+                    </div>
+                    <button id="btnConvert" class="btn btn-primary" style="margin-top: 0.5rem;">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <polyline points="23 4 23 10 17 10"></polyline>
+                            <polyline points="1 20 1 14 7 14"></polyline>
+                            <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path>
+                        </svg>
+                        Convert to Markdown
+                    </button>
+                </div>
+
+                <!-- Loading Indicator -->
+                <div id="loadingContainer" class="loading-container">
+                    <div class="spinner"></div>
+                    <div class="loading-text">Converting file locally...</div>
+                </div>
+
+                <!-- Error Messages -->
+                <div id="errorBanner" class="error-banner"></div>
+            </div>
+
+            <!-- List of supported files note -->
+            <div class="card" style="font-size: 0.8rem; color: var(--text-secondary); gap: 0.5rem;">
+                <h3 style="color: white; font-size: 0.85rem; font-weight: 600;">Supported File Formats</h3>
+                <p>Converted natively using your local environment:</p>
+                <ul style="padding-left: 1.1rem; display: grid; grid-template-columns: 1fr 1fr; gap: 0.25rem;">
+                    <li>Word (.docx)</li>
+                    <li>PowerPoint (.pptx)</li>
+                    <li>Excel (.xlsx)</li>
+                    <li>PDF (.pdf)</li>
+                    <li>HTML (.html)</li>
+                    <li>Images (.png, .jpg)</li>
+                    <li>Audio (.mp3, .wav)</li>
+                    <li>Text files (.txt, .csv)</li>
+                </ul>
+            </div>
+        </section>
+
+        <!-- Right Panel: Markdown Preview -->
+        <section class="panel-right card">
+            <div class="preview-header">
+                <!-- Preview Tabs -->
+                <div class="tabs">
+                    <button id="tabRendered" class="tab-btn active">Rendered HTML</button>
+                    <button id="tabRaw" class="tab-btn">Raw Markdown</button>
+                </div>
+                
+                <!-- Action Controls -->
+                <div class="actions">
+                    <button id="btnCopy" class="action-btn has-label" disabled title="Copy Markdown to Clipboard">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                            <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                        </svg>
+                        Copy
+                    </button>
+                    <button id="btnDownload" class="action-btn has-label" disabled title="Download .md File">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                            <polyline points="7 10 12 15 17 10"></polyline>
+                            <line x1="12" y1="15" x2="12" y2="3"></line>
+                        </svg>
+                        Download .md
+                    </button>
+                </div>
+            </div>
+
+            <!-- Preview Workspace -->
+            <div class="preview-content">
+                <!-- Empty State -->
+                <div id="emptyState" class="empty-placeholder">
+                    <svg class="empty-placeholder-icon" width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                        <polyline points="14 2 14 8 20 8"></polyline>
+                        <line x1="9" y1="15" x2="15" y2="15"></line>
+                        <line x1="9" y1="11" x2="15" y2="11"></line>
+                        <line x1="9" y1="18" x2="10" y2="18"></line>
+                    </svg>
+                    <div>
+                        <h4 style="color: var(--text-primary); font-size: 0.95rem; margin-bottom: 0.25rem;">No document converted yet</h4>
+                        <p style="font-size: 0.8rem;">Upload or drag-and-drop a file on the left side to get started.</p>
+                    </div>
+                </div>
+
+                <!-- Pane: Rendered HTML View -->
+                <div id="paneRendered" class="preview-pane rendered-html active"></div>
+
+                <!-- Pane: Raw Text View -->
+                <div id="paneRaw" class="preview-pane" style="height: 100%;">
+                    <textarea id="rawMarkdownText" class="raw-markdown" readonly placeholder="Markdown text will appear here..."></textarea>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- Toast Notice -->
+    <div id="toast" class="toast">Copied to clipboard!</div>
+
+    <!-- Scripts -->
+    <script src="/static/js/marked.min.js"></script>
+    <script src="/static/js/main.js"></script>
+</body>
+</html>
