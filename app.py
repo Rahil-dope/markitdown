@@ -77,18 +77,24 @@ async def convert_file(
 
         # 3. Convert the file using local markitdown
         if enable_ocr:
-            api_key = ocr_api_key or os.environ.get("OPENAI_API_KEY")
+            if ocr_provider == "gemini":
+                api_key = ocr_api_key or os.environ.get("GEMINI_API_KEY")
+                base_url = "https://generativelanguage.googleapis.com/v1beta/openai/"
+            else:
+                api_key = ocr_api_key or os.environ.get("OPENAI_API_KEY")
+                base_url = ocr_base_url
             
             # Check if key is provided or environment variable is set
             if not api_key:
+                provider_name = "Gemini" if ocr_provider == "gemini" else "OpenAI"
                 return JSONResponse(
                     status_code=400,
-                    content={"success": False, "error": "An API Key is required to run LLM-based OCR."}
+                    content={"success": False, "error": f"An API Key is required to run {provider_name}-based OCR."}
                 )
                 
             client_kwargs = {"api_key": api_key}
-            if ocr_base_url and ocr_base_url.strip():
-                client_kwargs["base_url"] = ocr_base_url.strip()
+            if base_url and base_url.strip():
+                client_kwargs["base_url"] = base_url.strip()
                 
             try:
                 client = OpenAI(**client_kwargs)

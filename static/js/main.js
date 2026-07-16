@@ -153,8 +153,13 @@ document.addEventListener('DOMContentLoaded', () => {
     ocrProvider.addEventListener('change', () => {
         if (ocrProvider.value === 'custom') {
             groupBaseUrl.style.display = 'flex';
+            ocrModel.value = 'gpt-4o-mini';
+        } else if (ocrProvider.value === 'gemini') {
+            groupBaseUrl.style.display = 'none';
+            ocrModel.value = 'gemini-2.0-flash';
         } else {
             groupBaseUrl.style.display = 'none';
+            ocrModel.value = 'gpt-4o-mini';
         }
     });
 
