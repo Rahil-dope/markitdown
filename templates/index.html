@@ -47,59 +47,6 @@
                     <input type="file" id="fileInput" class="file-input">
                 </div>
 
-                <!-- OCR & LLM Settings Accordion -->
-                <div class="settings-accordion">
-                    <button type="button" class="settings-trigger" id="btnSettingsToggle">
-                        <span class="settings-trigger-text">
-                            <!-- Settings Gear Icon -->
-                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color: var(--accent);">
-                                <circle cx="12" cy="12" r="3"></circle>
-                                <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
-                            </svg>
-                            OCR &amp; LLM Settings
-                        </span>
-                        <svg class="chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                            <polyline points="6 9 12 15 18 9"></polyline>
-                        </svg>
-                    </button>
-                    
-                    <div class="settings-content" id="settingsContent">
-                        <div class="form-group check-group">
-                            <label class="checkbox-container">
-                                <input type="checkbox" id="enableOcr">
-                                <span class="checkmark"></span>
-                                <span class="label-text">Enable LLM-based OCR</span>
-                            </label>
-                        </div>
-                        
-                        <div id="ocrFields" class="ocr-fields" style="display: none;">
-                            <div class="form-group">
-                                <label for="ocrProvider" class="form-label">API Provider</label>
-                                <select id="ocrProvider" class="form-select">
-                                    <option value="openai">OpenAI</option>
-                                    <option value="gemini">Google Gemini</option>
-                                    <option value="custom">Custom (OpenAI-Compatible / Ollama)</option>
-                                </select>
-                            </div>
-                            
-                            <div class="form-group">
-                                <label for="ocrApiKey" class="form-label">API Key</label>
-                                <input type="password" id="ocrApiKey" class="form-input" placeholder="Enter API key...">
-                            </div>
-                            
-                            <div class="form-group">
-                                <label for="ocrModel" class="form-label">Model Name</label>
-                                <input type="text" id="ocrModel" class="form-input" value="gpt-4o-mini" placeholder="e.g. gpt-4o-mini">
-                            </div>
-                            
-                            <div class="form-group" id="groupBaseUrl" style="display: none;">
-                                <label for="ocrBaseUrl" class="form-label">Base URL (Endpoint)</label>
-                                <input type="text" id="ocrBaseUrl" class="form-input" placeholder="e.g. http://localhost:11434/v1">
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
                 <!-- Selected File Display -->
                 <div id="fileInfo" class="file-info">
                     <div class="file-info-header">

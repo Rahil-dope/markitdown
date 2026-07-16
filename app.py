@@ -2,17 +2,12 @@ import os
 import shutil
 import tempfile
 import uvicorn
-from dotenv import load_dotenv
-from fastapi import FastAPI, UploadFile, File, Form
+from fastapi import FastAPI, UploadFile, File
 from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from fastapi.requests import Request
 from markitdown import MarkItDown
-from openai import OpenAI
-
-# Load environment variables
-load_dotenv()
 
 app = FastAPI(title="MarkItDown Web UI")
 
@@ -23,19 +18,61 @@ markitdown = MarkItDown()
 app.mount("/static", StaticFiles(directory="static"), name="static")
 templates = Jinja2Templates(directory="templates")
 
+# ---------------------------------------------------------------------------
+# Local OCR fallback for scanned / image-only PDFs
+# Uses PyMuPDF (fitz) to render pages → Pillow images → pytesseract OCR
+# No API key needed — runs entirely offline.
+# ---------------------------------------------------------------------------
+def _has_tesseract() -> bool:
+    """Check if Tesseract OCR binary is available on the system."""
+    try:
+        import pytesseract
+        pytesseract.get_tesseract_version()
+        return True
+    except Exception:
+        return False
+
+def _ocr_pdf_locally(file_path: str) -> str:
+    """
+    Render each page of a PDF as an image and run Tesseract OCR.
+    Returns the extracted markdown text.
+    """
+    import fitz  # PyMuPDF
+    import pytesseract
+    from PIL import Image
+    import io
+
+    doc = fitz.open(file_path)
+    markdown_parts = []
+
+    for page_num in range(doc.page_count):
+        page = doc[page_num]
+        # Render at 300 DPI for good OCR accuracy
+        mat = fitz.Matrix(300 / 72, 300 / 72)
+        pix = page.get_pixmap(matrix=mat)
+        img_bytes = pix.tobytes("png")
+        img = Image.open(io.BytesIO(img_bytes))
+
+        text = pytesseract.image_to_string(img).strip()
+        if text:
+            markdown_parts.append(f"## Page {page_num + 1}\n\n{text}")
+        else:
+            markdown_parts.append(f"## Page {page_num + 1}\n\n*[No text could be extracted from this page]*")
+
+    doc.close()
+    return "\n\n".join(markdown_parts)
+
+
+TESSERACT_AVAILABLE = _has_tesseract()
+print(f"[MarkItDown UI] Tesseract OCR available: {TESSERACT_AVAILABLE}")
+
+
 @app.get("/", response_class=HTMLResponse)
 async def index(request: Request):
     return templates.TemplateResponse(request, "index.html")
 
 @app.post("/api/convert")
-async def convert_file(
-    file: UploadFile = File(...),
-    enable_ocr: bool = Form(False),
-    ocr_provider: str = Form("openai"),
-    ocr_api_key: str = Form(None),
-    ocr_model: str = Form("gpt-4o-mini"),
-    ocr_base_url: str = Form(None)
-):
+async def convert_file(file: UploadFile = File(...)):
     # 1. Validation for empty uploads
     if not file or not file.filename:
         return JSONResponse(
@@ -75,51 +112,24 @@ async def convert_file(
         temp_size = os.path.getsize(temp_file_path)
         print(f"[{filename}] Temp file created: {temp_file_path} ({temp_size} bytes).")
 
-        # 3. Convert the file using local markitdown
-        if enable_ocr:
-            if ocr_provider == "gemini":
-                api_key = ocr_api_key or os.environ.get("GEMINI_API_KEY")
-                base_url = "https://generativelanguage.googleapis.com/v1beta/openai/"
-            else:
-                api_key = ocr_api_key or os.environ.get("OPENAI_API_KEY")
-                base_url = ocr_base_url
-            
-            # Check if key is provided or environment variable is set
-            if not api_key:
-                provider_name = "Gemini" if ocr_provider == "gemini" else "OpenAI"
-                return JSONResponse(
-                    status_code=400,
-                    content={"success": False, "error": f"An API Key is required to run {provider_name}-based OCR."}
-                )
-                
-            client_kwargs = {"api_key": api_key}
-            if base_url and base_url.strip():
-                client_kwargs["base_url"] = base_url.strip()
-                
-            try:
-                client = OpenAI(**client_kwargs)
-                md = MarkItDown(
-                    enable_plugins=True,
-                    llm_client=client,
-                    llm_model=ocr_model
-                )
-            except Exception as init_err:
-                return JSONResponse(
-                    status_code=400,
-                    content={"success": False, "error": f"Failed to initialize OCR LLM client: {str(init_err)}"}
-                )
-        else:
-            md = markitdown
-
-        result = md.convert(temp_file_path)
-        markdown_content = result.markdown
+        # 3. Convert the file using MarkItDown
+        result = markitdown.convert(temp_file_path)
+        markdown_content = result.markdown if result.markdown else ""
         
-        md_len = len(markdown_content) if markdown_content else 0
+        md_len = len(markdown_content.strip())
         print(f"[{filename}] Conversion complete. Markdown length: {md_len} characters.")
         
-        if markdown_content is None:
-            markdown_content = ""
-        # 4. Generate suggested output filename
+        # 4. If text extraction returned nothing and this is a PDF, try local OCR
+        if md_len == 0 and ext.lower() == ".pdf":
+            if TESSERACT_AVAILABLE:
+                print(f"[{filename}] Text extraction empty — running local Tesseract OCR...")
+                markdown_content = _ocr_pdf_locally(temp_file_path)
+                md_len = len(markdown_content.strip())
+                print(f"[{filename}] OCR complete. Markdown length: {md_len} characters.")
+            else:
+                print(f"[{filename}] Text extraction empty and Tesseract OCR not available.")
+
+        # 5. Generate suggested output filename
         base_name, _ = os.path.splitext(filename)
         output_filename = f"{base_name}.md"
 
@@ -127,7 +137,8 @@ async def convert_file(
             "success": True,
             "filename": filename,
             "output_filename": output_filename,
-            "markdown": markdown_content
+            "markdown": markdown_content,
+            "ocr_used": md_len > 0 and ext.lower() == ".pdf" and TESSERACT_AVAILABLE
         }
 
     except Exception as e:
@@ -137,7 +148,7 @@ async def convert_file(
             content={"success": False, "error": f"Failed to convert file: {str(e)}"}
         )
     finally:
-        # 5. Clean up temporary files, ensuring they are always deleted
+        # 6. Clean up temporary files, ensuring they are always deleted
         if temp_file_path and os.path.exists(temp_file_path):
             try:
                 os.remove(temp_file_path)

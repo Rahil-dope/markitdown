@@ -21,17 +21,6 @@ document.addEventListener('DOMContentLoaded', () => {
     const rawMarkdownText = document.getElementById('rawMarkdownText');
     const toast = document.getElementById('toast');
 
-    // OCR Elements
-    const btnSettingsToggle = document.getElementById('btnSettingsToggle');
-    const settingsContent = document.getElementById('settingsContent');
-    const enableOcr = document.getElementById('enableOcr');
-    const ocrFields = document.getElementById('ocrFields');
-    const ocrProvider = document.getElementById('ocrProvider');
-    const ocrApiKey = document.getElementById('ocrApiKey');
-    const ocrModel = document.getElementById('ocrModel');
-    const ocrBaseUrl = document.getElementById('ocrBaseUrl');
-    const groupBaseUrl = document.getElementById('groupBaseUrl');
-
     // State Variables
     let selectedFile = null;
     let convertedMarkdown = "";
@@ -134,35 +123,6 @@ document.addEventListener('DOMContentLoaded', () => {
         resetFileSelection();
     });
 
-    // Accordion Toggle
-    btnSettingsToggle.addEventListener('click', () => {
-        btnSettingsToggle.classList.toggle('active');
-        settingsContent.classList.toggle('open');
-    });
-
-    // Checkbox Change
-    enableOcr.addEventListener('change', () => {
-        if (enableOcr.checked) {
-            ocrFields.style.display = 'block';
-        } else {
-            ocrFields.style.display = 'none';
-        }
-    });
-
-    // Provider Change
-    ocrProvider.addEventListener('change', () => {
-        if (ocrProvider.value === 'custom') {
-            groupBaseUrl.style.display = 'flex';
-            ocrModel.value = 'gpt-4o-mini';
-        } else if (ocrProvider.value === 'gemini') {
-            groupBaseUrl.style.display = 'none';
-            ocrModel.value = 'gemini-2.0-flash';
-        } else {
-            groupBaseUrl.style.display = 'none';
-            ocrModel.value = 'gpt-4o-mini';
-        }
-    });
-
     // Conversion Logic
     btnConvert.addEventListener('click', async () => {
         if (!selectedFile) {
@@ -177,11 +137,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const formData = new FormData();
         formData.append('file', selectedFile);
-        formData.append('enable_ocr', enableOcr.checked);
-        formData.append('ocr_provider', ocrProvider.value);
-        formData.append('ocr_api_key', ocrApiKey.value);
-        formData.append('ocr_model', ocrModel.value);
-        formData.append('ocr_base_url', ocrBaseUrl.value);
 
         try {
             const response = await fetch('/api/convert', {
@@ -204,7 +159,6 @@ document.addEventListener('DOMContentLoaded', () => {
                     if (window.marked && typeof window.marked.parse === 'function') {
                         paneRendered.innerHTML = window.marked.parse(convertedMarkdown);
                     } else {
-                        // Fail-safe simple line-break formatter
                         paneRendered.innerHTML = `<pre style="white-space: pre-wrap; font-family: inherit;">${escapeHTML(convertedMarkdown)}</pre>`;
                     }
                 } else {
@@ -217,8 +171,7 @@ document.addEventListener('DOMContentLoaded', () => {
                                 <line x1="12" y1="17" x2="12.01" y2="17"></line>
                             </svg>
                             <p><strong>This document yielded no text.</strong></p>
-                            <p style="font-size: 0.8rem; opacity: 0.8; max-width: 280px; margin: 0 auto;">This usually happens with scanned PDFs or image-only files.</p>
-                            <p style="font-size: 0.8rem; opacity: 0.8; max-width: 280px; margin: 0.5rem auto 0 auto;">To extract text, enable <strong>OCR &amp; LLM Settings</strong>, enter an API Key, and try converting again.</p>
+                            <p style="font-size: 0.8rem; opacity: 0.8; max-width: 280px; margin: 0 auto;">This usually happens with scanned PDFs or image-only files. Make sure Tesseract OCR is installed on the system for automatic OCR support.</p>
                         </div>
                     `;
                 }
