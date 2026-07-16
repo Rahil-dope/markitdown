@@ -2,12 +2,13 @@ import os
 import shutil
 import tempfile
 import uvicorn
-from fastapi import FastAPI, UploadFile, File
+from fastapi import FastAPI, UploadFile, File, Form
 from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from fastapi.requests import Request
 from markitdown import MarkItDown
+from openai import OpenAI
 
 app = FastAPI(title="MarkItDown Web UI")
 
@@ -23,7 +24,14 @@ async def index(request: Request):
     return templates.TemplateResponse(request, "index.html")
 
 @app.post("/api/convert")
-async def convert_file(file: UploadFile = File(...)):
+async def convert_file(
+    file: UploadFile = File(...),
+    enable_ocr: bool = Form(False),
+    ocr_provider: str = Form("openai"),
+    ocr_api_key: str = Form(None),
+    ocr_model: str = Form("gpt-4o-mini"),
+    ocr_base_url: str = Form(None)
+):
     # 1. Validation for empty uploads
     if not file or not file.filename:
         return JSONResponse(
@@ -64,7 +72,36 @@ async def convert_file(file: UploadFile = File(...)):
         print(f"[{filename}] Temp file created: {temp_file_path} ({temp_size} bytes).")
 
         # 3. Convert the file using local markitdown
-        result = markitdown.convert(temp_file_path)
+        if enable_ocr:
+            api_key = ocr_api_key or os.environ.get("OPENAI_API_KEY")
+            
+            # Check if key is provided or environment variable is set
+            if not api_key:
+                return JSONResponse(
+                    status_code=400,
+                    content={"success": False, "error": "An API Key is required to run LLM-based OCR."}
+                )
+                
+            client_kwargs = {"api_key": api_key}
+            if ocr_base_url and ocr_base_url.strip():
+                client_kwargs["base_url"] = ocr_base_url.strip()
+                
+            try:
+                client = OpenAI(**client_kwargs)
+                md = MarkItDown(
+                    enable_plugins=True,
+                    llm_client=client,
+                    llm_model=ocr_model
+                )
+            except Exception as init_err:
+                return JSONResponse(
+                    status_code=400,
+                    content={"success": False, "error": f"Failed to initialize OCR LLM client: {str(init_err)}"}
+                )
+        else:
+            md = markitdown
+
+        result = md.convert(temp_file_path)
         markdown_content = result.markdown
         
         md_len = len(markdown_content) if markdown_content else 0
