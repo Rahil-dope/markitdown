@@ -182,6 +182,7 @@ class PdfConverterWithOCR(DocumentConverter):
         pdf_bytes = io.BytesIO(file_stream.read())
 
         markdown_content = []
+        has_actual_content = False
 
         try:
             with pdfplumber.open(pdf_bytes) as pdf:
@@ -269,28 +270,32 @@ class PdfConverterWithOCR(DocumentConverter):
                             for item in content_items:
                                 if item["type"] == "text":
                                     markdown_content.append(item["text"])
+                                    has_actual_content = True
                                 else:  # image
                                     ocr_text = item["ocr_text"]
                                     img_marker = (
                                         f"\n\n*[Image OCR]\n{ocr_text}\n[End OCR]*\n"
                                     )
                                     markdown_content.append(img_marker)
+                                    has_actual_content = True
                         else:
                             # No images detected - just extract regular text
                             text_content = page.extract_text() or ""
                             if text_content.strip():
                                 markdown_content.append(text_content.strip())
+                                has_actual_content = True
                     else:
                         # No OCR, just extract text
                         text_content = page.extract_text() or ""
                         if text_content.strip():
                             markdown_content.append(text_content.strip())
+                            has_actual_content = True
 
                 # Build final markdown
                 markdown = "\n\n".join(markdown_content).strip()
 
                 # Fallback to pdfminer if empty
-                if not markdown:
+                if not has_actual_content:
                     pdf_bytes.seek(0)
                     markdown = pdfminer.high_level.extract_text(pdf_bytes)
 
@@ -372,6 +377,10 @@ class PdfConverterWithOCR(DocumentConverter):
                         if ocr_result.text.strip():
                             text = ocr_result.text.strip()
                             markdown_parts.append(f"*[Image OCR]\n{text}\n[End OCR]*")
+                        elif ocr_result.error:
+                            markdown_parts.append(
+                                f"*[Error processing page {page_num}: {ocr_result.error}]*"
+                            )
                         else:
                             markdown_parts.append(
                                 "*[No text could be extracted from this page]*"

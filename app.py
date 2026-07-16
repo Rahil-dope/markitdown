@@ -2,6 +2,7 @@ import os
 import shutil
 import tempfile
 import uvicorn
+from dotenv import load_dotenv
 from fastapi import FastAPI, UploadFile, File, Form
 from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
@@ -9,6 +10,9 @@ from fastapi.templating import Jinja2Templates
 from fastapi.requests import Request
 from markitdown import MarkItDown
 from openai import OpenAI
+
+# Load environment variables
+load_dotenv()
 
 app = FastAPI(title="MarkItDown Web UI")
 
