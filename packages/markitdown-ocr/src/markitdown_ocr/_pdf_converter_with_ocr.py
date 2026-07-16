@@ -414,6 +414,10 @@ class PdfConverterWithOCR(DocumentConverter):
                         if ocr_result.text.strip():
                             text = ocr_result.text.strip()
                             markdown_parts.append(f"*[Image OCR]\n{text}\n[End OCR]*")
+                        elif ocr_result.error:
+                            markdown_parts.append(
+                                f"*[Error processing page {page_num}: {ocr_result.error}]*"
+                            )
                         else:
                             markdown_parts.append(
                                 "*[No text could be extracted from this page]*"
